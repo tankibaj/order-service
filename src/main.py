@@ -12,6 +12,7 @@ from starlette.responses import Response
 
 from src.api.router import router
 from src.config import settings
+from src.services.order_saga import StockConflictHTTPException
 
 
 def _configure_logging() -> None:
@@ -69,6 +70,13 @@ def create_app() -> FastAPI:
                 ],
             },
         )
+
+    @app.exception_handler(StockConflictHTTPException)
+    async def stock_conflict_handler(
+        request: Request, exc: StockConflictHTTPException
+    ) -> JSONResponse:
+        """Return a flat 409 StockConflictError (no 'detail' wrapper)."""
+        return JSONResponse(status_code=409, content=exc.payload)
 
     app.include_router(router)
 

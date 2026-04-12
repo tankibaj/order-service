@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from typing import Protocol
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +14,18 @@ from src.repositories.shipping_method_repo import ShippingMethodRepository
 from src.schemas.common import StockConflictErrorResponse, StockConflictItem
 from src.schemas.order import OrderResponse, PlaceGuestOrderRequest
 from src.services.reference_generator import generate_unique_reference
+
+
+class StockConflictHTTPException(Exception):
+    """Raised when inventory-service returns a 409 stock conflict.
+
+    Handled by a registered exception handler that returns the contract-compliant
+    StockConflictError response (flat JSON, no 'detail' wrapper).
+    """
+
+    def __init__(self, payload: dict) -> None:  # type: ignore[type-arg]
+        self.payload = payload
+
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +90,8 @@ class OrderSaga:
                 tenant_id=tenant_id,
             )
         except StockConflictError as exc:
-            raise HTTPException(
-                status_code=409,
-                detail=StockConflictErrorResponse(
+            raise StockConflictHTTPException(
+                payload=StockConflictErrorResponse(
                     code="STOCK_CONFLICT",
                     message=exc.message,
                     conflicts=[
@@ -92,7 +102,7 @@ class OrderSaga:
                         )
                         for c in exc.conflicts
                     ],
-                ).model_dump(),
+                ).model_dump(mode="json"),
             ) from exc
 
         # ── Step 3: Capture payment ───────────────────────────────────────

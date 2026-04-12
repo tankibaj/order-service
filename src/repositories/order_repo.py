@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +46,7 @@ class OrderRepository:
 
     async def create(self, db: AsyncSession, data: CreateOrderData) -> OrderModel:
         """Persist an Order with its lines in a single commit."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         order = OrderModel(
             tenant_id=data.tenant_id,
             reference=data.reference,
@@ -146,12 +146,17 @@ class OrderRepository:
         return orders, total
 
     async def save(self, db: AsyncSession, order: OrderModel) -> OrderModel:
-        """Persist changes to an existing order."""
-        order.updated_at = datetime.now(timezone.utc)
+        """Persist changes to an existing order and reload with lines eager-loaded."""
+        order.updated_at = datetime.now(UTC)
         db.add(order)
         await db.commit()
-        await db.refresh(order)
-        return order
+        # Reload with lines to avoid lazy-loading in async context
+        result = await db.execute(
+            select(OrderModel)
+            .where(OrderModel.id == order.id)
+            .options(selectinload(OrderModel.lines))
+        )
+        return result.scalar_one()
 
     async def reference_exists(
         self,
