@@ -1,15 +1,23 @@
 """
-Orders stub endpoint.
+Orders API endpoints.
 
-GET /orders is implemented as a stub that validates admin auth and returns
-an empty list. Full order retrieval logic is implemented in WP-007-BE.
+GET /orders  — paginated, filterable admin order list (WP-007-BE)
+GET /orders/{orderId} — single order detail (WP-008-BE stub — replaced later)
 """
 
-from fastapi import APIRouter, Depends, Header
+import uuid
 
+from fastapi import APIRouter, Depends, Header, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.dependencies import get_db
+from src.repositories.order_repo import OrderRepository
+from src.schemas.order import OrderPage, OrderPageMeta, OrderResponse
 from src.services.auth_service import AdminContext, require_admin_auth
 
 router = APIRouter(tags=["Orders"])
+
+_order_repo = OrderRepository()
 
 
 async def _get_admin_context(
@@ -28,9 +36,43 @@ async def _get_admin_context(
     return await require_admin_auth(token=token, x_tenant_id=x_tenant_id)
 
 
-@router.get("/orders", response_model=list[dict])  # type: ignore[type-arg]
-async def list_orders_stub(
-    _ctx: AdminContext = Depends(_get_admin_context),
-) -> list[dict]:  # type: ignore[type-arg]
-    """Stub: validates admin auth, returns empty list. Full logic in WP-007-BE."""
-    return []
+@router.get("/orders", response_model=OrderPage)
+async def list_orders(
+    status: str | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    ctx: AdminContext = Depends(_get_admin_context),
+    db: AsyncSession = Depends(get_db),
+) -> OrderPage:
+    """List orders for the authenticated tenant with optional filters."""
+    orders, total = await _order_repo.list_orders(
+        db=db,
+        tenant_id=ctx.tenant_id,
+        status=status,
+        q=q,
+        page=page,
+        per_page=per_page,
+    )
+    return OrderPage(
+        data=[OrderResponse.from_model(order) for order in orders],
+        meta=OrderPageMeta(total=total, page=page, per_page=per_page),
+    )
+
+
+@router.get("/orders/{order_id}", response_model=OrderResponse)
+async def get_order(
+    order_id: uuid.UUID,
+    ctx: AdminContext = Depends(_get_admin_context),
+    db: AsyncSession = Depends(get_db),
+) -> OrderResponse:
+    """Get a single order by ID — stub. Full logic implemented in WP-008-BE."""
+    from fastapi import HTTPException
+
+    order = await _order_repo.get_by_id(db, order_id, ctx.tenant_id)
+    if order is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "ORDER_NOT_FOUND", "message": "Order not found"},
+        )
+    return OrderResponse.from_model(order)
