@@ -1,27 +1,55 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pythonjsonlogger.json import JsonFormatter
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response
 
 from src.api.router import router
+from src.config import settings
+
+
+def _configure_logging() -> None:
+    """Set up structured JSON logging to stdout."""
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    logging.basicConfig(level=settings.log_level, handlers=[handler], force=True)
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Propagate X-Request-ID header through the request/response cycle."""
+
+    async def dispatch(
+        self, request: StarletteRequest, call_next: RequestResponseEndpoint
+    ) -> Response:
+        request_id = request.headers.get("X-Request-ID", "")
+        response = await call_next(request)
+        if request_id:
+            response.headers["X-Request-ID"] = request_id
+        return response
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifecycle."""
+    _configure_logging()
     yield
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Order Service",
-        version="0.1.0",
+        version=settings.service_version,
         description="Guest checkout, order management, and admin authentication.",
         lifespan=lifespan,
     )
+
+    app.add_middleware(RequestIDMiddleware)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -43,6 +71,12 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(router)
+
+    # Register Prometheus metrics instrumentation
+    from src.api.health import setup_metrics
+
+    setup_metrics(app)
+
     return app
 
 

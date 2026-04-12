@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Import all models so they register with Base.metadata
+from src.models.admin_user import AdminUserModel  # noqa: F401
 from src.models.base import Base
 from src.models.guest_session import GuestSessionModel  # noqa: F401
 from src.models.shipping_method import ShippingMethodModel  # noqa: F401
