@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from src.schemas.common import Address, PaymentMethodInput
 
@@ -12,7 +12,7 @@ from src.schemas.common import Address, PaymentMethodInput
 
 class OrderLineRequest(BaseModel):
     sku_id: uuid.UUID
-    quantity: int  # minimum: 1
+    quantity: int = Field(ge=1)
 
 
 class PlaceGuestOrderRequest(BaseModel):
@@ -20,7 +20,7 @@ class PlaceGuestOrderRequest(BaseModel):
     shipping_address: Address
     shipping_method_id: uuid.UUID
     payment_method: PaymentMethodInput
-    lines: list[OrderLineRequest]
+    lines: list[OrderLineRequest] = Field(min_length=1)
 
 
 # ─── Response schemas ────────────────────────────────────────────────────────

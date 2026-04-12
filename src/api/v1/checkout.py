@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.clients.inventory_client import InventoryClient
@@ -87,11 +87,6 @@ async def place_guest_order(
     notification_client: NotificationClient = Depends(get_notification_client),
 ) -> OrderResponse:
     """Place a guest order via the order saga."""
-    if len(body.lines) == 0:
-        raise HTTPException(
-            status_code=422,
-            detail={"code": "VALIDATION_ERROR", "message": "lines must not be empty"},
-        )
     saga = OrderSaga(
         inventory_client=inventory_client,
         stripe_client=stripe_client,

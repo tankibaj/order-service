@@ -7,7 +7,12 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.clients.inventory_client import InventoryClient, StockConflictError
-from src.clients.notification_client import NotificationClient
+from src.clients.notification_client import (
+    NotificationClient,
+    NotificationLineItem,
+    OrderConfirmationPayload,
+    SendOrderConfirmationRequest,
+)
 from src.clients.stripe_client import PaymentError, StripeClient
 from src.repositories.order_repo import CreateOrderData, CreateOrderLineData, OrderRepository
 from src.repositories.shipping_method_repo import ShippingMethodRepository
@@ -183,19 +188,29 @@ class OrderSaga:
         order = await _order_repo.create(db, order_data)
 
         # ── Step 6: Dispatch notification (fire-and-forget) ───────────────
-        notification_payload: dict[str, object] = {
-            "type": "order_confirmation",
-            "recipient": str(request.email),
-            "order_id": str(order.id),
-            "reference": reference,
-        }
-        notification_id = await self._notifications.send_notification(
-            request=notification_payload,
+        notification_lines = [
+            NotificationLineItem(
+                product_name=line.product_name,
+                quantity=line.quantity,
+                unit_price=f"${line.unit_price_minor / 100:.2f}",
+            )
+            for line in order.lines
+        ]
+        notification_request = SendOrderConfirmationRequest(
+            recipient_address=str(request.email),
+            payload=OrderConfirmationPayload(
+                order_reference=order.reference,
+                lines=notification_lines,
+                total=f"${order.total_minor / 100:.2f}",
+            ),
+        )
+        receipt = await self._notifications.send_order_confirmation(
+            request=notification_request,
             tenant_id=tenant_id,
         )
-        if notification_id is not None:
-            order.notification_id = notification_id
-            order.notification_status = "queued"
+        if receipt is not None:
+            order.notification_id = receipt.id
+            order.notification_status = receipt.status
             await _order_repo.save(db, order)
 
         return OrderResponse.from_model(order)

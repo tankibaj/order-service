@@ -1,8 +1,9 @@
 """Shared Pydantic schemas used across multiple endpoints."""
 
 import uuid
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Address(BaseModel):
@@ -10,12 +11,12 @@ class Address(BaseModel):
     line2: str | None = None
     city: str
     postal_code: str
-    country_code: str
+    country_code: str = Field(min_length=2, max_length=2)
 
 
 class PaymentMethodInput(BaseModel):
-    type: str  # "card" | "digital_wallet"
-    token: str
+    type: Literal["card", "digital_wallet"]
+    token: str = Field(min_length=1)
 
 
 class StockConflictItem(BaseModel):

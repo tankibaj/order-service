@@ -13,6 +13,7 @@ from starlette.responses import Response
 from src.api.router import router
 from src.config import settings
 from src.services.order_saga import StockConflictHTTPException
+from src.services.validation import build_validation_error_response
 
 
 def _configure_logging() -> None:
@@ -56,20 +57,7 @@ def create_app() -> FastAPI:
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ) -> Response:
-        return JSONResponse(
-            status_code=422,
-            content={
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "details": [
-                    {
-                        "field": ".".join(str(x) for x in err["loc"]),
-                        "issue": err["msg"],
-                    }
-                    for err in exc.errors()
-                ],
-            },
-        )
+        return build_validation_error_response(exc)
 
     @app.exception_handler(StockConflictHTTPException)
     async def stock_conflict_handler(
