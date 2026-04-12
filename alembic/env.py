@@ -11,6 +11,7 @@ from alembic import context
 from src.models.admin_user import AdminUserModel  # noqa: F401
 from src.models.base import Base
 from src.models.guest_session import GuestSessionModel  # noqa: F401
+from src.models.order import OrderLineModel, OrderModel  # noqa: F401
 from src.models.shipping_method import ShippingMethodModel  # noqa: F401
 from src.config import settings
 

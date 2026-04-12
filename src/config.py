@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # External services
     inventory_service_url: str = "http://inventory-service:8001"
     notification_service_url: str = "http://notification-service:8002"
+    stripe_api_key: str = "sk_test_placeholder"
 
 
 settings = Settings()

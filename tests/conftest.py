@@ -18,6 +18,7 @@ from src.dependencies import get_db
 from src.main import create_app
 from src.models.base import Base
 from src.models.guest_session import GuestSessionModel
+from src.models.order import OrderLineModel, OrderModel  # noqa: F401
 from src.models.shipping_method import ShippingMethodModel
 
 # Test database URL — use a dedicated test DB to avoid polluting the app DB

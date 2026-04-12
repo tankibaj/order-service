@@ -26,6 +26,7 @@ dev = [
   "ruff>=0.1",
   "mypy>=1.10",
   "schemathesis>=3.30",
+  "respx>=0.23.1",
 ]
 
 [tool.ruff]
