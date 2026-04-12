@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pythonjsonlogger.json import JsonFormatter
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -49,6 +50,15 @@ def create_app() -> FastAPI:
         version=settings.service_version,
         description="Guest checkout, order management, and admin authentication.",
         lifespan=lifespan,
+    )
+
+    # CORS — allow browser clients (storefront, admin) in development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.add_middleware(RequestIDMiddleware)

@@ -32,10 +32,12 @@ def upgrade() -> None:
                  estimated_days_min, estimated_days_max, is_active,
                  created_at, updated_at)
             VALUES
-                (:id1, :tenant_id, 'Standard Shipping',
-                 'Delivery in 3-5 business days', 599, 3, 5, true, :now, :now),
-                (:id2, :tenant_id, 'Express Shipping',
-                 'Delivery in 1-2 business days', 1499, 1, 2, true, :now, :now)
+                (CAST(:id1 AS uuid), CAST(:tenant_id AS uuid), 'Standard Shipping',
+                 'Delivery in 3-5 business days', 599, 3, 5, true,
+                 CAST(:now AS timestamptz), CAST(:now AS timestamptz)),
+                (CAST(:id2 AS uuid), CAST(:tenant_id AS uuid), 'Express Shipping',
+                 'Delivery in 1-2 business days', 1499, 1, 2, true,
+                 CAST(:now AS timestamptz), CAST(:now AS timestamptz))
             ON CONFLICT DO NOTHING
             """
         ).bindparams(

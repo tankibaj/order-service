@@ -68,8 +68,8 @@ def upgrade() -> None:
                     (id, tenant_id, email, password_hash, role,
                      totp_secret, is_active, created_at, updated_at)
                 VALUES
-                    (:id, :tenant_id, :email, :password_hash, :role,
-                     :totp_secret, true, :now, :now)
+                 (CAST(:id AS uuid), CAST(:tenant_id AS uuid), :email, :password_hash, :role,
+                      :totp_secret, true, CAST(:now AS timestamptz), CAST(:now AS timestamptz))
                 ON CONFLICT DO NOTHING
                 """
             ).bindparams(

@@ -1,12 +1,13 @@
 """Health, readiness, and metrics endpoints."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
+from src.dependencies import get_db
 
 router = APIRouter(tags=["Observability"])
 
@@ -24,13 +25,10 @@ async def health() -> JSONResponse:
 
 
 @router.get("/ready")
-async def ready() -> JSONResponse:
+async def ready(session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """Readiness probe — checks database connectivity."""
-    from src.dependencies import _engine
-
     try:
-        async with AsyncSession(_engine) as session:
-            await session.execute(text("SELECT 1"))
+        await session.execute(text("SELECT 1"))
         return JSONResponse(
             content={"status": "ok", "database": "ok"},
         )

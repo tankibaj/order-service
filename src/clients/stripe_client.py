@@ -1,9 +1,14 @@
 """Stripe payment client wrapper."""
 
 import logging
+import uuid
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# When set to this placeholder, the client runs in dev/test mode and
+# auto-approves all payments without calling the real Stripe API.
+_DEV_KEY = "sk_test_placeholder"
 
 
 class PaymentError(Exception):
@@ -25,6 +30,8 @@ class StripeClient:
 
     In production, this would call the Stripe API directly.
     For testing, the create_payment_intent method is mocked.
+    When STRIPE_API_KEY=sk_test_placeholder the client auto-approves payments
+    (dev/local mode only).
     """
 
     def __init__(self, api_key: str) -> None:
@@ -40,6 +47,12 @@ class StripeClient:
 
         Raises PaymentError on failure (declined, network error, etc.).
         """
+        if self._api_key == _DEV_KEY:
+            # Dev/local mode — return a synthetic successful intent so the
+            # full order saga can be exercised without a real Stripe account.
+            logger.info("Stripe dev-mode: auto-approving payment of %d %s", amount, currency)
+            return PaymentIntent(id=f"pi_dev_{uuid.uuid4().hex}", status="succeeded")
+
         # Real implementation would call stripe.PaymentIntent.create(...)
         # For MVP tests this method is mocked via unittest.mock.patch
         raise NotImplementedError(
