@@ -1,6 +1,6 @@
 # Entity Schema: order-service
 
-> Auto-generated from SQLAlchemy models on 2026-04-25 23:13 UTC. Do not edit manually.
+> Auto-generated from SQLAlchemy models on 2026-04-26 00:15 UTC. Do not edit manually.
 
 ---
 
@@ -38,8 +38,8 @@
 - UNIQUE (`token`)
 
 **Indexes:**
-- `idx_guest_sessions_token`: UNIQUE (`token`)
 - `idx_guest_sessions_expires`: (`expires_at`)
+- `idx_guest_sessions_token`: UNIQUE (`token`)
 
 ---
 
@@ -72,8 +72,8 @@
 - CHECK `customer_id IS NOT NULL OR guest_email IS NOT NULL` (ck_orders_customer_or_guest)
 
 **Indexes:**
-- `idx_orders_tenant_status`: (`tenant_id`, `status`)
 - `idx_orders_guest_email`: (`guest_email`)
+- `idx_orders_tenant_status`: (`tenant_id`, `status`)
 
 **Relationships:**
 - `lines` → `order_lines` (one-to-many)
@@ -115,8 +115,8 @@
 | `subtotal_minor` | `INTEGER` | NO |  |  |
 
 **Constraints:**
-- CHECK `unit_price_minor >= 0` (ck_order_lines_unit_price)
 - CHECK `quantity >= 1` (ck_order_lines_quantity)
+- CHECK `unit_price_minor >= 0` (ck_order_lines_unit_price)
 
 **Indexes:**
 - `idx_order_lines_order_id`: (`order_id`)
